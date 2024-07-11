@@ -1,4 +1,4 @@
-import { Address, Hex } from "viem";
+import { Address, Hex, concat } from "viem";
 
 export type RevokePermissionsRequestParams = {
     permissionsContext: "0x{string}";
@@ -58,13 +58,11 @@ export interface Policy {
 export type PermissionType = "native-token-transfer" | "erc20-token-transfer" | "erc721-token-transfer" | "erc1155-token-transfer";
 export type PolicyType = "gas-limit" | "call-limit" | "rate-limit" | "spent-limit";
 
-export type GetEnableContextParams = {
-  newSignerId: Hex,
-  simpleSignerValidator: Address,
-  signerValidatorConfigData: Hex,
-  usageLimitPolicy: Address,
-  simpleGasPolicy: Address,
-  timeFramePolicy: Address,
+export type GetContextParams = {
+  nonceKey: Hex,
+  executionMode: any,
+  signerAddress: Address,
+  enableData: Hex
 }
 
 export type GetContextReturnType = {
@@ -72,3 +70,42 @@ export type GetContextReturnType = {
   permissionEnableData: Hex,
   permissionEnableDataSignature: Hex
 }
+
+export type PolicyData = {
+  policy: string;
+  initData: string;
+}
+
+export type  ActionData = {
+  actionId: string;
+  actionPolicies: PolicyData[];
+}
+
+export type  EnableSessions = {
+  isigner: string;
+  isignerInitData: string;
+  userOpPolicies: PolicyData[];
+  erc1271Policies: PolicyData[];
+  actions: ActionData[];
+  permissionEnableSig: string;
+}
+
+// define mode and exec type enums
+export const CALLTYPE_SINGLE = "0x00" // 1 byte
+export const CALLTYPE_BATCH = "0x01" // 1 byte
+export const EXECTYPE_DEFAULT = "0x00" // 1 byte
+export const EXECTYPE_TRY = "0x01" // 1 byte
+export const EXECTYPE_DELEGATE = "0xFF" // 1 byte
+export const MODE_DEFAULT = "0x00000000" // 4 bytes
+export const UNUSED = "0x00000000" // 4 bytes
+export const MODE_PAYLOAD = "0x00000000000000000000000000000000000000000000" // 22 bytes
+export const ERC1271_MAGICVALUE = "0x1626ba7e"
+export const ERC1271_INVALID = "0xffffffff"
+
+export const EXECUTE_SINGLE = concat([
+  CALLTYPE_SINGLE,
+  EXECTYPE_DEFAULT,
+  MODE_DEFAULT,
+  UNUSED,
+  MODE_PAYLOAD
+])

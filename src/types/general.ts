@@ -1,3 +1,5 @@
+import { Address, Hex } from "viem";
+
 export type RevokePermissionsRequestParams = {
     permissionsContext: "0x{string}";
 };
@@ -55,3 +57,18 @@ export interface Policy {
 
 export type PermissionType = "native-token-transfer" | "erc20-token-transfer" | "erc721-token-transfer" | "erc1155-token-transfer";
 export type PolicyType = "gas-limit" | "call-limit" | "rate-limit" | "spent-limit";
+
+export type GetEnableContextParams = {
+  newSignerId: Hex,
+  simpleSignerValidator: Address,
+  signerValidatorConfigData: Hex,
+  usageLimitPolicy: Address,
+  simpleGasPolicy: Address,
+  timeFramePolicy: Address,
+}
+
+export type GetContextReturnType = {
+  permissionData: Hex,
+  permissionEnableData: Hex,
+  permissionEnableDataSignature: Hex
+}

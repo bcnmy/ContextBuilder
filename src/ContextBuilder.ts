@@ -18,12 +18,14 @@ export class ContextBuilder {
         // Shift left by 32 bits to get the uint192 value
         const nonceKey = uint160Address << BigInt(32);
 
+        const signerId = toHex("01");
+
         const enableData = await this._prepareMockEnableData(walletClient.account?.address!, await smartAccountClient.getAddress(), walletClient);
-        const context = encodePacked(['uint192', 'bytes', 'address', 'bytes'], 
+        const context = encodePacked(['uint192', 'bytes', 'bytes32', 'bytes'], 
             [
                 nonceKey, //192 bits, 24 bytes
                 EXECUTE_SINGLE, //execution mode, 32 bytes
-                walletClient.account?.address!,
+                signerId,
                 enableData
             ]
         );

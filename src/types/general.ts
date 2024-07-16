@@ -81,15 +81,6 @@ export type  ActionData = {
   actionPolicies: PolicyData[];
 }
 
-export type  EnableSessions = {
-  isigner: string;
-  isignerInitData: string;
-  userOpPolicies: PolicyData[];
-  erc1271Policies: PolicyData[];
-  actions: ActionData[];
-  permissionEnableSig: string;
-}
-
 // define mode and exec type enums
 export const CALLTYPE_SINGLE = "0x00" // 1 byte
 export const CALLTYPE_BATCH = "0x01" // 1 byte
@@ -109,3 +100,21 @@ export const EXECUTE_SINGLE = concat([
   UNUSED,
   MODE_PAYLOAD
 ])
+
+export interface EnableSessions {
+  isigner: Address;
+  isignerInitData: Hex;
+  userOpPolicies: PolicyData[];
+  erc1271Policies: PolicyData[];
+  actions: ActionData[];
+  permissionEnableSig: string;
+}
+
+export enum SmartSessionMode {
+  USE,
+  ENABLE,
+  UNSAFE_ENABLE
+}
+
+export type SignerId = Address;
+export type ActionId = Address;

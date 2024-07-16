@@ -1,16 +1,17 @@
 import { parseAccount, privateKeyToAccount } from "viem/accounts";
-import { ActionData, EXECUTE_SINGLE, EnableSessions, PolicyData } from "./types/general";
-import { Address, WalletClient, WalletGrantPermissionsReturnType, encodeAbiParameters, encodePacked, keccak256, maxUint256, numberToHex, parseAbiParameters, toFunctionSelector, toHex } from "viem";
+import { ActionData, EXECUTE_SINGLE, EnableSessions, PolicyData, SignerId } from "./types/general";
+import { Address, Hex, WalletClient, WalletGrantPermissionsReturnType, createPublicClient, encodeAbiParameters, encodePacked, http, keccak256, maxUint256, numberToBytes, numberToHex, parseAbi, parseAbiParameters, toBytes, toFunctionSelector, toHex } from "viem";
 import { GrantPermissionsParameters } from "viem/experimental";
 import { createSmartAccountClient } from "@biconomy/account";
-import { counterContractAddress, mockValidator, simpleGasPolicy, smartSessionAddress, timeFramePolicy } from "./utils/constants";
+import { counterContractAddress, mockValidator, smartSessionAddress, simplerSignerAddress, timeFramePolicyAddress } from "./utils/constants";
 import { ethers } from "ethers";
+import { sepolia } from "viem/chains";
 export class ContextBuilder {
     async getContext(walletClient: WalletClient): Promise<`0x${string}`> {
         const smartAccountClient = await createSmartAccountClient({
             signer: walletClient,
             chainId: walletClient.chain?.id,
-            bundlerUrl: "https://api.pimlico.io/v2/84532/rpc?apikey=d4ba0b0e-26cc-4ea0-90d4-4e0e146705f2"
+            bundlerUrl: `https://api.pimlico.io/v2/${walletClient.chain?.id}/rpc?apikey=d4ba0b0e-26cc-4ea0-90d4-4e0e146705f2`
         })
 
         // Convert the address to a BigInt (equivalent to uint160 in Solidity)
@@ -19,43 +20,59 @@ export class ContextBuilder {
         // Shift left by 32 bits to get the uint192 value
         const nonceKey = uint160Address << BigInt(32);
 
-        const signerId = toHex("01");
-
-        const enableData = await this._prepareMockEnableData(walletClient.account?.address!, await smartAccountClient.getAddress(), walletClient);
+        const signerId = ethers.hexlify(numberToBytes(await smartAccountClient.getNonce(), { size: 32 }) ) as Hex;
+        const enableData = await this._prepareMockEnableData(walletClient.account?.address!, await smartAccountClient.getNonce(), walletClient);
+        
         const context = encodePacked(['uint192', 'bytes', 'bytes32', 'bytes'], 
             [
                 nonceKey, //192 bits, 24 bytes
                 EXECUTE_SINGLE, //execution mode, 32 bytes
                 signerId,
-                encodeAbiParameters([{name: 'EnableSessions', type: 'struct'}], [enableData])
+                this.encodeEnableSessions(enableData) as Hex
             ]
         );
-
-        console.log(context, "context");
-        
-
-       return context;
+        return context;
     }
 
-    async _prepareMockEnableData(signerAddress: Address, accountAddress: Address, walletClient: WalletClient): Promise<any> {
+    encodeEnableSessions(enableData: EnableSessions): string {
+      return ethers.AbiCoder.defaultAbiCoder().encode(
+        [
+          'tuple(address isigner, bytes isignerInitData, tuple(address policy, bytes initData)[] userOpPolicies, tuple(address policy, bytes initData)[] erc1271Policies, tuple(bytes32 actionId, tuple(address policy, bytes initData)[] actionPolicies)[] actions, bytes permissionEnableSig)'
+        ],
+        [{
+          isigner: enableData.isigner, // Assuming ISigner has an 'address' property
+          isignerInitData: enableData.isignerInitData,
+          userOpPolicies: enableData.userOpPolicies,
+          erc1271Policies: enableData.erc1271Policies,
+          actions: enableData.actions.map(action => ({
+            actionId: action.actionId,
+            actionPolicies: action.actionPolicies
+          })),
+          permissionEnableSig: enableData.permissionEnableSig
+        }]
+      );
+    }
+
+    async _prepareMockEnableData(signerAddress: Address, nonce: bigint, walletClient: WalletClient): Promise<any> {
         // Initialize userOpPolicyData
         const userOpPolicyData: PolicyData[] = [];
-        let policyInitData = encodeAbiParameters(parseAbiParameters("uint256"), [maxUint256]);
-        userOpPolicyData.push({ policy: simpleGasPolicy, initData: policyInitData });
+        let policyInitData = encodeAbiParameters(parseAbiParameters("address"), [signerAddress]);
+        userOpPolicyData.push({ policy: simplerSignerAddress, initData: policyInitData });
 
         // Initialize actionPolicyData
         const blockTimestamp = Math.floor(Date.now() / 1000); // Current timestamp
         const actionPolicyData: PolicyData[] = [];
         policyInitData = encodeAbiParameters(parseAbiParameters("uint128, uint128"), [BigInt(blockTimestamp + 1000), BigInt(blockTimestamp - 1)]);
-        actionPolicyData.push({ policy: timeFramePolicy, initData: policyInitData });
+        actionPolicyData.push({ policy: timeFramePolicyAddress, initData: policyInitData });
 
         const incrementSelector = toFunctionSelector('function increment()');
 
         // Compute actionId
         const actionId = keccak256(encodeAbiParameters(
-        parseAbiParameters("address, bytes4"),
+          parseAbiParameters("address, bytes4"),
             [counterContractAddress, incrementSelector]
-        ));
+          )
+        );
 
         // Initialize actions
         const actions: ActionData[] = [];
@@ -63,112 +80,39 @@ export class ContextBuilder {
 
         // Construct enableData
         const enableData: EnableSessions = {
-            isigner: "0x1111111111111111111111111111111111111111", // Example ISigner address
+            isigner: simplerSignerAddress, // Example ISigner address
             isignerInitData: encodeAbiParameters(parseAbiParameters("address"), [signerAddress]),
             userOpPolicies: userOpPolicyData,
             erc1271Policies: [],
             actions: actions,
-            permissionEnableSig: ""
+            permissionEnableSig: "" // ?
         };
 
-        const getDigest = (signer: string, account: string, data: EnableSessions): string => {
-            // Simulate the digest computation as done in Solidity
-            return ethers.keccak256(ethers.AbiCoder.defaultAbiCoder().encode(
-              ["address", "address", "tuple(address isigner, bytes isignerInitData, tuple(address policy, bytes initData)[] userOpPolicies, tuple(address policy, bytes initData)[] erc1271Policies, tuple(bytes32 actionId, tuple(address policy, bytes initData)[] actionPolicies)[] actions, bytes permissionEnableSig)"],
-              [signer, account, data]
-            ));
-          };
-
         // Compute hash and sign it
-        const hash = getDigest(signerAddress, accountAddress, enableData);
+        const signerId = ethers.hexlify(numberToBytes(nonce, { size: 32 }) ) as Hex;
+        const hash = this.getDigest(signerId, nonce, enableData);
         enableData.permissionEnableSig = encodePacked(['address', 'bytes'], [mockValidator, await walletClient.signMessage({account: walletClient.account!, message: hash})]);
 
         return enableData;
     }
 
-    // async _getPermissionEnableContext(account: Account, params: GetEnableContextParams): Promise<GetContextReturnType> {
-
-    //     const { newSignerId, simpleSignerValidator, signerValidatorConfigData, usageLimitPolicy, simpleGasPolicy, timeFramePolicy} = params
-
-    //     const permissionDataStructureDescriptor: string = toHex(
-    //         (1 << 24) + // setup signer mode = true
-    //         (2 << 16) + // number of userOp policies
-    //         (2 << 8) +  // number of action policies
-    //         1           // number of 1271 policies
-    //     );
-
-    //     let permissionData = toHex(concat([
-    //         toBytes(newSignerId),
-    //         toBytes(permissionDataStructureDescriptor),
-    //         toBytes(simpleSignerValidator),
-    //         toBytes(encodeAbiParameters([{ name: 'length', type: 'uint32' }], [2])),
-    //         toBytes(signerValidatorConfigData)
-    //     ]));
-
-    //     // Encode additional permission data
-    //     permissionData = toHex(concat([
-    //         toBytes(permissionData),
-    //         toBytes(usageLimitPolicy),
-    //         toBytes(encodeAbiParameters([{ name: 'usageLimitPolicy', type: 'uint32' }], [32])),
-    //         toBytes(encodeAbiParameters([{ name: 'limit', type: 'uint256' }], [10n])),
-    //         toBytes(simpleGasPolicy),
-    //         toBytes(encodeAbiParameters([{ name: 'simpleGasPolicy', type: 'uint32' }], [32])),
-    //         toBytes(encodeAbiParameters([{ name: 'limit', type: 'uint256' }], [maxUint256])),
-    //     ]));
-  
-    //     // Compute action ID
-    //     const actionId = keccak256(encodeAbiParameters(
-    //         parseAbiParameters('address, bytes'),
-    //         [this.counterContractAddress, this.incrementSelector]
-    //     ));
-  
-    //     // Encode action policies
-    //     const actionPoliciesData = toHex(concat([
-    //         toBytes(permissionData),
-    //         toBytes(actionId),
-    //         toBytes(usageLimitPolicy),
-    //         toBytes(encodeAbiParameters(parseAbiParameters("uint32"), [32])),
-    //         toBytes(encodeAbiParameters(parseAbiParameters("uint256"), [5n])),
-    //         toBytes(timeFramePolicy),
-    //         toBytes(encodeAbiParameters(parseAbiParameters("uint32"), [32])),
-    //         toBytes(encodeAbiParameters(
-    //         parseAbiParameters("uint256"), 
-    //         [BigInt(((Date.now() + 1000) << 128) + Date.now())]
-    //         ))
-    //     ]));
-  
-    //     // Encode 1271 policies
-    //     const finalPermissionData = toHex(concat([
-    //         toBytes(actionPoliciesData),
-    //         toBytes(timeFramePolicy),
-    //         toBytes(encodeAbiParameters(parseAbiParameters("uint32"), [32])),
-    //         toBytes(encodeAbiParameters(
-    //         parseAbiParameters("uint256"), 
-    //             [BigInt(((Date.now() + 1000) << 128) + Date.now())]
-    //         ))
-    //     ]));
-  
-    //     // Compute permission digest
-    //     const permissionDigest = keccak256(finalPermissionData);
-  
-    //     // Construct session enable data
-    //     const permissionEnableData = toHex(concat([
-    //         toBytes(encodeAbiParameters(parseAbiParameters("uint64"), [0x01n])), // mainnet chain ID
-    //         toBytes(permissionDigest),
-    //         toBytes(encodeAbiParameters(parseAbiParameters("uint64"), [BigInt(baseSepolia.id)])), // current chain ID
-    //         toBytes(permissionDigest)
-    //     ]));
-
-    //     const signature = await account.signMessage!({message: keccak256(permissionEnableData)});
-    //     const permissionEnableDataSignature = encodePacked(['address', 'bytes'], [this.mockValidator, signature]);
-
-    //     return {
-    //         permissionData,
-    //         permissionEnableData,
-    //         permissionEnableDataSignature
-    //     }
-    // }
-    
+    getDigest(signerId: SignerId, nonce: bigint, data: EnableSessions): string {
+      return ethers.keccak256(
+        ethers.AbiCoder.defaultAbiCoder().encode(
+          ['bytes32', 'uint256', 'uint256', 'address', 'bytes', 'tuple(address,bytes)[]', 'tuple(address,bytes)[]', 'tuple(bytes32,tuple(address,bytes)[])[]'],
+          [
+            signerId,
+            nonce,
+            sepolia.id, // This returns a Promise, you might need to handle it differently
+            data.isigner,
+            data.isignerInitData,
+            data.userOpPolicies.map(p => [p.policy, p.initData]),
+            data.erc1271Policies.map(p => [p.policy, p.initData]),
+            data.actions.map(a => [a.actionId, a.actionPolicies.map(p => [p.policy, p.initData])])
+          ]
+        )
+      );
+    }
 
     formatParameters(parameters: GrantPermissionsParameters) {
         const { expiry, permissions, signer: signer_ } = parameters

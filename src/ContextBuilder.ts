@@ -9,6 +9,7 @@ export class ContextBuilder {
     async getContext(walletClient: WalletClient): Promise<`0x${string}`> {
         const smartAccountClient = await createSmartAccountClient({
             signer: walletClient,
+            chainId: walletClient.chain?.id,
             bundlerUrl: "https://api.pimlico.io/v2/84532/rpc?apikey=d4ba0b0e-26cc-4ea0-90d4-4e0e146705f2"
         })
 
@@ -26,9 +27,12 @@ export class ContextBuilder {
                 nonceKey, //192 bits, 24 bytes
                 EXECUTE_SINGLE, //execution mode, 32 bytes
                 signerId,
-                enableData
+                encodeAbiParameters([{name: 'EnableSessions', type: 'struct'}], [enableData])
             ]
         );
+
+        console.log(context, "context");
+        
 
        return context;
     }

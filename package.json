@@ -10,6 +10,7 @@
   "description": "",
   "dependencies": {
     "@biconomy/account": "^4.5.2",
+    "dotenv": "^16.4.5",
     "ethers": "^6.13.1",
     "viem": "^2.17.3",
     "vitest": "^2.0.2"

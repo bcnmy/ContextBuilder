@@ -3,6 +3,7 @@ import { ContextBuilder } from '../src/ContextBuilder';
 import { baseSepolia, sepolia } from 'viem/chains';
 import { privateKeyToAccount } from 'viem/accounts';
 import { createSmartAccountClient } from '@biconomy/account';
+import { createWalletClient, Hex, http } from 'viem';
 
 describe("Context Builder Unit Tests", async () => {
     test('Should correctly format request', async () => {
@@ -60,21 +61,21 @@ describe("Context Builder Unit Tests", async () => {
         console.log("Formatted: ", formattedReq);
     });
 
-    // test('Should generate permission context', async () => {
+    test('Should generate permission context', async () => {
 
-    //     const contextBuilder = new ContextBuilder();
-
-    //     const account = privateKeyToAccount("0x");
-
-    //     const smartAccountClient = await createSmartAccountClient({
-    //         signer: account,
-    //         rpcUrl: baseSepolia.rpcUrls.default.http[0],
-    //         chainId: baseSepolia.id,
-    //         bundlerUrl: "https://api.pimlico.io/v2/84532/rpc?apikey=d4ba0b0e-26cc-4ea0-90d4-4e0e146705f2"
-    //     })
-
-    //     const context = await contextBuilder.getContext(wa, await smartAccountClient.getAddress())
-    //     console.log("Context: ", context);
+        const contextBuilder = new ContextBuilder();
         
-    // });
+        const wKey = process.env.PRIVATE_KEY! as Hex;
+        
+        const account = privateKeyToAccount(wKey);
+
+        const walletClient = createWalletClient({
+          transport: http(),
+          chain: baseSepolia,
+          account
+        })
+
+        const context = await contextBuilder.getContext(walletClient)
+        console.log("Context: ", context);
+    });
 });

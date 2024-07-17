@@ -2,7 +2,7 @@ import { describe, expect, test } from 'vitest';
 import { sepolia } from 'viem/chains';
 import { privateKeyToAccount } from 'viem/accounts';
 import { createPublicClient, createWalletClient, encodeAbiParameters, Hex, http, keccak256, parseAbiItem, parseAbiParameters, parseEther, toFunctionSelector } from 'viem';
-import { counterContractAddress, digestEncoderAddress, simplerSignerAddress, timeFramePolicyAddress } from '../src/utils/constants';
+import { digestEncoderAddress, simplerSignerAddress, timeFramePolicyAddress } from '../src/utils/constants';
 import { getContext, getDigest } from '../index';
 import { ActionData, PolicyData } from '../src/types/general';
 import { donutContractAbi, donutContractaddress } from '../src/utils/contract';
@@ -30,12 +30,12 @@ describe("Context Builder Unit Tests", async () => {
       policyInitData = encodeAbiParameters(parseAbiParameters("uint128, uint128"), [BigInt(blockTimestamp + 1000), BigInt(blockTimestamp - 1)]);
       actionPolicyData.push({ policy: timeFramePolicyAddress, initData: policyInitData });
 
-      const incrementSelector = toFunctionSelector('function increment()');
+      const donutPurchase = toFunctionSelector('function purchase()');
 
       // Compute actionId
       const actionId = keccak256(encodeAbiParameters(
         parseAbiParameters("address, bytes4"),
-            [counterContractAddress, incrementSelector]
+            [donutContractaddress, donutPurchase]
         )
       );
 

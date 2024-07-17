@@ -1,2 +1,2 @@
 
-export * from './src/ContextBuilder';
+export * from './src/contextBuilder';

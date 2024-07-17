@@ -26,9 +26,18 @@ export type RateLimitPolicy = {
 };
 
 // The amount of Native Token that can be spent by a permission
-export type NativeTokenSpendLimitPolicy = {
-  type: "spent-limit";
+export type ValueSpendLimitPolicy = {
+  type: "value-limit";
   data: {
     allowance: Hex; // hex value
+  };
+};
+
+// The amount of Native Token that can be spent by a permission
+export type TimeFrameLimitPolicy = {
+  type: "time-frame-limit";
+  data: {
+    from: Hex; // start time
+    to: Hex; // end time
   };
 };

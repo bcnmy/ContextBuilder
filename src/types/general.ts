@@ -1,7 +1,7 @@
-import { Address, Hex, concat } from "viem";
+import { Address, Hex, WalletClient, concat } from "viem";
 
 export type RevokePermissionsRequestParams = {
-    permissionsContext: "0x{string}";
+  permissionsContext: "0x{string}";
 };
 
 export type RevokePermissionsResponseResult = {};
@@ -21,49 +21,42 @@ export type GrantPermissionsResponse = {
   }[]
   permissionsContext: string
   signerData?:
-    | {
-        userOpBuilder?: `0x${string}` | undefined
-        submitToAddress?: `0x${string}` | undefined
-      }
-    | undefined
+  | {
+    userOpBuilder?: `0x${string}` | undefined
+    submitToAddress?: `0x${string}` | undefined
+  }
+  | undefined
 };
 
 export type GrantPermissionsRequestParams = {
-    account?: `0x${string}`;
-  
-    chainId: number;
-  
-    signer: {
-      type: string;
-      data: any;
-    };
-  
-    permissions: Permission[];
-  
-    expiry: number;
+  account?: `0x${string}`;
+
+  chainId: number;
+
+  signer: {
+    type: string;
+    data: any;
+  };
+
+  permissions: Permission[];
+
+  expiry: number;
 };
 
-export interface Permission {
-    type: PermissionType;
-    policies: Policy[];
-    required: boolean;
-    data: any;
+export type Permission = {
+  type: PermissionType;
+  policies: Policy[];
+  required: boolean;
+  data: any;
 }
 
-export interface Policy {
-    type: PolicyType;
-    data: any;
+export type Policy = {
+  type: PolicyType;
+  data: any;
 }
 
-export type PermissionType = "native-token-transfer" | "erc20-token-transfer" | "erc721-token-transfer" | "erc1155-token-transfer";
-export type PolicyType = "gas-limit" | "call-limit" | "rate-limit" | "spent-limit";
-
-export type GetContextParams = {
-  nonceKey: Hex,
-  executionMode: any,
-  signerAddress: Address,
-  enableData: Hex
-}
+export type PermissionType = "native-token-transfer" | "erc20-token-transfer" | "erc721-token-transfer" | "erc1155-token-transfer" | {custom : any};
+export type PolicyType = "gas-limit" | "call-limit" | "rate-limit" | "spent-limit" | "value-limit" | "time-frame" | "uni-action" | "simpler-signer" | {custom : any};
 
 export type GetContextReturnType = {
   permissionData: Hex,
@@ -76,7 +69,7 @@ export type PolicyData = {
   initData: string;
 }
 
-export type  ActionData = {
+export type ActionData = {
   actionId: string;
   actionPolicies: PolicyData[];
 }
@@ -118,3 +111,24 @@ export enum SmartSessionMode {
 
 export type SignerId = Address;
 export type ActionId = Address;
+
+export type PrepareMockEnableDataParams = {
+  signerAddress: Address, 
+  nonce: bigint, 
+  walletClient: WalletClient, 
+  userOpPolicies: PolicyData[], 
+  actions: ActionData[], 
+  erc1271Policies: PolicyData[], 
+  permissionEnableSig?: Hex
+}
+
+export type GetContextParams = {
+  walletClient: WalletClient,
+  smartAccountAddress: Address;
+  smartAccountNonce: bigint,
+  userOpPolicies: PolicyData[],
+  actions: ActionData[], 
+  erc1271Policies: PolicyData[],
+  sessionKey: Hex;
+  permissionEnableSig?: Hex,
+}

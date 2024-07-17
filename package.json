@@ -1,5 +1,5 @@
 {
-  "name": "permission-context-builder",
+  "name": "@biconomy/permission-context-builder",
   "version": "1.0.0",
   "main": "index.ts",
   "scripts": {
@@ -12,7 +12,13 @@
   },
   "author": "Biconomy",
   "license": "ISC",
-  "description": "",
+  "description": "ERC-7715 Permission Context Builder utility package.",
+  "keywords": [
+    "biconomy",
+    "account abstraction",
+    "ERC-7715",
+    "ERC-7579"
+  ],
   "devDependencies": {
     "bs58": "^6.0.0",
     "dotenv": "^16.4.5",

@@ -114,7 +114,8 @@ export type ActionId = Address;
 
 export type PrepareMockEnableDataParams = {
   signerAddress: Address, 
-  nonce: bigint, 
+  nonce: bigint,
+  signerId: Hex, 
   walletClient: WalletClient, 
   userOpPolicies: PolicyData[], 
   actions: ActionData[], 

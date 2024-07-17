@@ -42,11 +42,12 @@ export const getContext = async ({
         )
       ]
     )
-  );
+  ) as Hex;
   
   const enableData = await _prepareMockEnableData(
     {
       signerAddress: walletClient.account?.address!, 
+      signerId,
       nonce: smartAccountNonce, 
       walletClient, 
       userOpPolicies, 
@@ -90,6 +91,7 @@ export const _prepareMockEnableData = async (
   {
     signerAddress, 
     nonce, 
+    signerId,
     walletClient, 
     userOpPolicies, 
     actions, 
@@ -113,7 +115,6 @@ export const _prepareMockEnableData = async (
     };
 
     // Compute hash and sign it
-    const signerId = ethers.hexlify(numberToBytes(nonce, { size: 32 }) ) as Hex;
     const hash = getDigest(signerId, nonce, enableData, walletClient.chain?.id!);
     enableData.permissionEnableSig = encodePacked(['address', 'bytes'], [mockValidator, await walletClient.signMessage({account: walletClient.account!, message: hash})]);
 

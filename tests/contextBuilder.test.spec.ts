@@ -106,53 +106,53 @@ describe("Context Builder Unit Tests", async () => {
       expect(digest).toBe(digestFromContract);
     })
 
-    // test('Should get context using WC demo request', async () => {
-    //   const permissions: Permission[] = [
-    //     {
-    //       type: {
-    //         custom: 'donut-purchase'
-    //       },
-    //       data: {
-    //         target: donutContractaddress,
-    //         abi: donutContractAbi,
-    //         valueLimit: parseEther('0.1'),
-    //         // @ts-ignore
-    //         functionName: 'purchase'
-    //       },
-    //       policies: [],
-    //       required: true
-    //     }
-    //   ]
+    test('Should get context using WC demo request', async () => {
+      const permissions: Permission[] = [
+        {
+          type: {
+            custom: 'donut-purchase'
+          },
+          data: {
+            target: donutContractaddress,
+            abi: donutContractAbi,
+            valueLimit: parseEther('0.1'),
+            // @ts-ignore
+            functionName: 'purchase'
+          },
+          policies: [],
+          required: true
+        }
+      ]
 
-    //   const walletClient = createWalletClient({
-    //     account: privateKeyToAccount(process.env.PRIVATE_KEY! as Hex),
-    //     chain: sepolia,
-    //     transport: http()
-    //   });
+      const walletClient = createWalletClient({
+        account: privateKeyToAccount(process.env.PRIVATE_KEY! as Hex),
+        chain: sepolia,
+        transport: http()
+      });
 
-    //   const smartAccountClient = await createSmartAccountClient({
-    //     bundlerUrl: `https://bundler.biconomy.io/api/v2/${sepolia.id}/nJPK7B3ru.dd7f7861-190d-41bd-af80-6877f74b8f44`,
-    //     signer: walletClient
-    //   })
+      const smartAccountClient = await createSmartAccountClient({
+        bundlerUrl: `https://bundler.biconomy.io/api/v2/${sepolia.id}/nJPK7B3ru.dd7f7861-190d-41bd-af80-6877f74b8f44`,
+        signer: walletClient
+      })
 
-    //   const signer = {
-    //     type: 'key',
-    //     data: {
-    //       id: encodeSecp256k1PublicKeyToDID(walletClient.account?.address!)
-    //     }
-    //   }
+      const signer = {
+        type: 'key',
+        data: {
+          id: encodeSecp256k1PublicKeyToDID(walletClient.account?.address!)
+        }
+      }
 
-    //   const context = await getContext({
-    //     walletClient,
-    //     smartAccountNonce: BigInt(1),
-    //     smartAccountAddress: await smartAccountClient.getAddress(),
-    //     userOpPolicies: [],
-    //     actions,
-    //     erc1271Policies: [],
-    //     sessionKey: "0x"
-    //   })
-    //   console.log(context, "context");
+      const context = await getContext({
+        walletClient,
+        smartAccountNonce: BigInt(1),
+        smartAccountAddress: await smartAccountClient.getAddress(),
+        userOpPolicies: [],
+        actions: [],
+        erc1271Policies: [],
+        sessionKey: "0x"
+      })
+      console.log(context, "context");
       
-    //   expect(context).toBeDefined();
-    // })
+      expect(context).toBeDefined();
+    })
 });

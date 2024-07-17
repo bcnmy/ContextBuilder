@@ -1,30 +1,20 @@
-import { parseAccount } from "viem/accounts";
-import { EXECUTE_SINGLE, EnableSessions, GetContextParams, PrepareMockEnableDataParams, SignerId } from "./types/general";
-import { Hex, concat, encodeAbiParameters, encodePacked, keccak256, numberToBytes, numberToHex, parseAbiParameters, toBytes, toHex } from "viem";
-import { GrantPermissionsParameters } from "viem/experimental";
-import { mockValidator, smartSessionAddress, simplerSignerAddress } from "./utils/constants";
+import { EXECUTE_SINGLE, EnableSessions, GrantPermissionsRequestParams, PrepareMockEnableDataParams, SignerId } from "./types/general";
+import { Hex, WalletClient, concat, encodeAbiParameters, encodePacked, keccak256, parseAbiParameters, toFunctionSelector, toHex } from "viem";
+import { mockValidator, smartSessionAddress, simplerSignerAddress, timeFramePolicyAddress } from "./utils/constants";
 import { ethers } from "ethers";
 
-export const getContext = async ({
-  walletClient,
-  smartAccountNonce,
-  smartAccountAddress,
-  sessionKey,
-  userOpPolicies,
-  erc1271Policies,
-  actions,
-  permissionEnableSig
-}: GetContextParams): Promise<`0x${string}`> => {
-  if(walletClient.account?.address === undefined) {
-    throw new Error("Account address is undefined");
-  }
+export const getContext = async (walletClient: WalletClient, {
+  account,
+  permissions,
+  expiry,
+  signer
+}: GrantPermissionsRequestParams): Promise<`0x${string}`> => {
   // Convert the address to a BigInt (equivalent to uint160 in Solidity)
   const uint160Address = BigInt(smartSessionAddress);
 
   // Shift left by 32 bits to get the uint192 value
   const nonceKey = uint160Address << BigInt(32);
 
-  console.log(Date.now().toString(), "Date.now().toString()");
   const signerId = ethers.hexlify(
     encodePacked(
       ["bytes32"], 
@@ -33,9 +23,9 @@ export const getContext = async ({
           concat(
             [
               toHex("Signer Id"), 
-              sessionKey, 
-              smartAccountAddress, 
-              simplerSignerAddress, 
+              signer.data.id, 
+              account, 
+              getSignerPolicyByType(signer.type), 
               toHex(Date.now().toString())
             ]
           )
@@ -43,29 +33,48 @@ export const getContext = async ({
       ]
     )
   ) as Hex;
+
+  const actions = permissions.map(permission => (
+    {
+      actionId: keccak256(
+        encodeAbiParameters(
+          parseAbiParameters("address, bytes4"),
+              [permission.data.target, toFunctionSelector(permission.data.functionName)]
+          )
+      ),
+      actionPolicies: [{policy: timeFramePolicyAddress, initData: encodeAbiParameters(parseAbiParameters("uint128, uint128"), [BigInt(expiry), BigInt(expiry - 1)])}] // hardcoded for demo
+    }
+  ))
   
   const enableData = await _prepareMockEnableData(
     {
-      signerAddress: walletClient.account?.address!, 
+      signerAddress: signer.data.address, 
       signerId,
-      nonce: smartAccountNonce, 
       walletClient, 
-      userOpPolicies, 
+      userOpPolicies: [], // @todo for demo, no userOpPolicies 
       actions, 
-      erc1271Policies, 
-      permissionEnableSig
+      erc1271Policies: [], // @todo for demo, no erc1271Policies 
     }
   );
   
   const context = encodePacked(['uint192', 'bytes', 'bytes32', 'bytes'], 
       [
-          nonceKey, //192 bits, 24 bytes
-          EXECUTE_SINGLE, //execution mode, 32 bytes
-          signerId as Hex, // 32 bytes
-          encodeEnableSessions(enableData) as Hex
+        nonceKey, // 192 bits, 24 bytes
+        EXECUTE_SINGLE, // execution mode, 32 bytes
+        signerId as Hex, // 32 bytes
+        encodeEnableSessions(enableData) as Hex
       ]
   );
   return context;
+}
+
+const getSignerPolicyByType = (signerType: string): Hex => {
+  switch(signerType) {
+    case "key":
+      return simplerSignerAddress;
+    default:
+      throw new Error("Invalid signer type");
+  }
 }
 
 export const encodeEnableSessions = (enableData: EnableSessions): string => {
@@ -90,13 +99,11 @@ export const encodeEnableSessions = (enableData: EnableSessions): string => {
 export const _prepareMockEnableData = async (
   {
     signerAddress, 
-    nonce, 
     signerId,
     walletClient, 
     userOpPolicies, 
     actions, 
     erc1271Policies,
-    permissionEnableSig
   } : PrepareMockEnableDataParams): Promise<any> => {
     if(walletClient.account === undefined) {
       throw new Error("Account is undefined");
@@ -105,29 +112,29 @@ export const _prepareMockEnableData = async (
       throw new Error("Chain is undefined");
     }
     // Construct enableData
-    const enableData: EnableSessions = {
+    let enableData: EnableSessions = {
         isigner: simplerSignerAddress, // Example ISigner address
         isignerInitData: encodeAbiParameters(parseAbiParameters("address"), [signerAddress]),
         userOpPolicies,
         erc1271Policies,
         actions,
-        permissionEnableSig: permissionEnableSig ?? "" 
+        permissionEnableSig: "" 
     };
 
     // Compute hash and sign it
-    const hash = getDigest(signerId, nonce, enableData, walletClient.chain?.id!);
+    const hash = getDigest(signerId, enableData, walletClient.chain?.id!);
     enableData.permissionEnableSig = encodePacked(['address', 'bytes'], [mockValidator, await walletClient.signMessage({account: walletClient.account!, message: hash})]);
 
     return enableData;
 }
 
-export const getDigest = (signerId: SignerId, nonce: bigint, data: EnableSessions, chainId: number): string => {
+export const getDigest = (signerId: SignerId, data: EnableSessions, chainId: number): string => {
   return ethers.keccak256(
     ethers.AbiCoder.defaultAbiCoder().encode(
       ['bytes32', 'uint256', 'uint256', 'address', 'bytes', 'tuple(address,bytes)[]', 'tuple(address,bytes)[]', 'tuple(bytes32,tuple(address,bytes)[])[]'],
       [
         signerId,
-        nonce,
+        0n, // @todo need to fetch nonce from smart session instead
         chainId, 
         data.isigner,
         data.isignerInitData,
@@ -138,65 +145,3 @@ export const getDigest = (signerId: SignerId, nonce: bigint, data: EnableSession
     )
   );
 }
-
-export const formatParameters = (parameters: GrantPermissionsParameters) => {
-    const { expiry, permissions, signer: signer_ } = parameters
-  
-    const account = parameters.account
-      ? parseAccount(parameters.account)
-      : undefined
-  
-    const signer = (() => {
-      if (!account && !signer_) return undefined
-  
-      // JSON-RPC Account as signer.
-      if (account?.type === 'json-rpc')
-        return {
-          type: 'wallet',
-        }
-  
-      // Local Account as signer.
-      if (account?.type === 'local')
-        return {
-          type: 'account',
-          data: {
-            id: account.address,
-          },
-        }
-  
-      // ERC-7715 Signer as signer.
-      return signer_
-    })()
-  
-    return {
-      expiry,
-      permissions: permissions.map((permission) => ({
-        ...permission,
-        policies: permission.policies.map((policy) => {
-          const data = (() => {
-            if (policy.type === 'token-allowance')
-              return {
-                allowance: numberToHex(policy.data.allowance),
-              }
-            if (policy.type === 'gas-limit')
-              return {
-                limit: numberToHex(policy.data.limit),
-              }
-            return policy.data
-          })()
-  
-          return {
-            data,
-            type:
-              typeof policy.type === 'string' ? policy.type : policy.type.custom,
-          }
-        }),
-        required: permission.required ?? false,
-        type:
-          typeof permission.type === 'string'
-            ? permission.type
-            : permission.type.custom,
-      })),
-      ...(signer ? { signer } : {}),
-    }
-  }

@@ -4,8 +4,7 @@ import { privateKeyToAccount } from 'viem/accounts';
 import { createPublicClient, createWalletClient, encodeAbiParameters, Hex, http, keccak256, parseAbiItem, parseAbiParameters, parseEther, toFunctionSelector } from 'viem';
 import { counterContractAddress, digestEncoderAddress, simplerSignerAddress, timeFramePolicyAddress } from '../src/utils/constants';
 import { getContext, getDigest } from '../index';
-import { ActionData, Permission, PolicyData } from '../src/types/general';
-import { createSmartAccountClient } from '@biconomy/account';
+import { ActionData, PolicyData } from '../src/types/general';
 import { donutContractAbi, donutContractaddress } from '../src/utils/contract';
 import { encodeSecp256k1PublicKeyToDID } from '../src/utils/methods';
 
@@ -15,14 +14,9 @@ describe("Context Builder Unit Tests", async () => {
       const account = privateKeyToAccount(wKey);
 
       const walletClient = createWalletClient({
+        account,
         transport: http(),
         chain: sepolia,
-        account
-      })
-
-      const smartAccountClient = await createSmartAccountClient({
-        bundlerUrl: `https://bundler.biconomy.io/api/v2/${sepolia.id}/nJPK7B3ru.dd7f7861-190d-41bd-af80-6877f74b8f44`,
-        signer: walletClient
       })
 
         // Initialize userOpPolicyData
@@ -49,16 +43,32 @@ describe("Context Builder Unit Tests", async () => {
       const actions: ActionData[] = [];
       actions.push({ actionId: actionId, actionPolicies: actionPolicyData });
 
-      const context = await getContext({
-        walletClient,
-        smartAccountNonce: BigInt(1),
-        smartAccountAddress: await smartAccountClient.getAddress(),
-        userOpPolicies: userOpPolicyData,
-        actions,
-        erc1271Policies: [],
-        sessionKey: "0x"
+      const context = await getContext(walletClient, {
+       signer: {
+          type: 'key',
+          data: {
+            id: encodeSecp256k1PublicKeyToDID(walletClient.account?.address),
+            address: walletClient.account?.address
+          }
+       },
+       account: walletClient.account?.address,
+       permissions: [
+          {
+            type: {
+              custom: 'donut-purchase'
+            },
+            data: {
+              target: donutContractaddress,
+              abi: donutContractAbi,
+              valueLimit: parseEther('0.001'),
+              functionName: 'function purchase()'
+            },
+            policies: [],
+            required: true
+          }
+       ],
+       expiry: Date.now() + 1000
       })
-      console.log(context, "context");
       
       expect(context).toBeDefined();
     });
@@ -90,7 +100,7 @@ describe("Context Builder Unit Tests", async () => {
 
       const mockSignerId = "0x1234567890123456789012345678901234567890123456789012345678901234";
 
-      const digest = getDigest(mockSignerId, BigInt(1), mockEnableData, sepolia.id);
+      const digest = getDigest(mockSignerId, mockEnableData, sepolia.id);
 
       const digestFromContract = await publicClient.readContract({
         address: digestEncoderAddress,
@@ -100,59 +110,9 @@ describe("Context Builder Unit Tests", async () => {
           "struct ActionData {bytes32 actionId; PolicyData[] actionPolicies}"
         ])],
         functionName: "digest",
-        args: [mockSignerId, BigInt(1), mockEnableData]
+        args: [mockSignerId, BigInt(0), mockEnableData]
       })
     
       expect(digest).toBe(digestFromContract);
-    })
-
-    test('Should get context using WC demo request', async () => {
-      const permissions: Permission[] = [
-        {
-          type: {
-            custom: 'donut-purchase'
-          },
-          data: {
-            target: donutContractaddress,
-            abi: donutContractAbi,
-            valueLimit: parseEther('0.1'),
-            // @ts-ignore
-            functionName: 'purchase'
-          },
-          policies: [],
-          required: true
-        }
-      ]
-
-      const walletClient = createWalletClient({
-        account: privateKeyToAccount(process.env.PRIVATE_KEY! as Hex),
-        chain: sepolia,
-        transport: http()
-      });
-
-      const smartAccountClient = await createSmartAccountClient({
-        bundlerUrl: `https://bundler.biconomy.io/api/v2/${sepolia.id}/nJPK7B3ru.dd7f7861-190d-41bd-af80-6877f74b8f44`,
-        signer: walletClient
-      })
-
-      const signer = {
-        type: 'key',
-        data: {
-          id: encodeSecp256k1PublicKeyToDID(walletClient.account?.address!)
-        }
-      }
-
-      const context = await getContext({
-        walletClient,
-        smartAccountNonce: BigInt(1),
-        smartAccountAddress: await smartAccountClient.getAddress(),
-        userOpPolicies: [],
-        actions: [],
-        erc1271Policies: [],
-        sessionKey: "0x"
-      })
-      console.log(context, "context");
-      
-      expect(context).toBeDefined();
     })
 });

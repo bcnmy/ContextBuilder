@@ -29,9 +29,7 @@ export type GrantPermissionsResponse = {
 };
 
 export type GrantPermissionsRequestParams = {
-  account?: `0x${string}`;
-
-  chainId: number;
+  account: `0x${string}`;
 
   signer: {
     type: string;
@@ -49,6 +47,13 @@ export type Permission = {
   required: boolean;
   data: any;
 }
+
+// export type PermissionData = {
+//   target: Address;
+//   abi: string;
+//   valueLimit: bigint;
+//   functionName: string;
+// }
 
 export type Policy = {
   type: PolicyType;
@@ -114,7 +119,6 @@ export type ActionId = Address;
 
 export type PrepareMockEnableDataParams = {
   signerAddress: Address, 
-  nonce: bigint,
   signerId: Hex, 
   walletClient: WalletClient, 
   userOpPolicies: PolicyData[], 

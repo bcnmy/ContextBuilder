@@ -1,4 +1,5 @@
 import { type Address, type Hex, type WalletClient, concat } from "viem";
+import { MultiKeySigner } from "./signers";
 
 export type RevokePermissionsRequestParams = {
   permissionsContext: "0x{string}";
@@ -29,12 +30,9 @@ export type GrantPermissionsResponse = {
 };
 
 export type GrantPermissionsRequestParams = {
-  account: `0x${string}`;
+  smartAccountAddress: `0x${string}`;
 
-  signer: {
-    type: string;
-    data: any;
-  };
+  signer: MultiKeySigner;
 
   permissions: Permission[];
 
@@ -101,11 +99,11 @@ export const EXECUTE_SINGLE = concat([
 
 export interface EnableSessions {
   isigner: Address;
-  isignerInitData: Hex;
+  isignerInitData: Uint8Array;
   userOpPolicies: PolicyData[];
   erc1271Policies: PolicyData[];
   actions: ActionData[];
-  permissionEnableSig: string;
+  permissionEnableSig: Uint8Array;
 }
 
 export enum SmartSessionMode {
@@ -118,8 +116,8 @@ export type SignerId = Address;
 export type ActionId = Address;
 
 export type PrepareMockEnableDataParams = {
-  signerAddress: Address, 
-  signerId: Hex, 
+  smartAccountAddress: Address,
+  signer: MultiKeySigner, 
   walletClient: WalletClient, 
   userOpPolicies: PolicyData[], 
   actions: ActionData[], 

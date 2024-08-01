@@ -1,11 +1,13 @@
-import type { EnableSessions, GrantPermissionsRequestParams, PrepareMockEnableDataParams, SignerId } from "./types/general";
-import { EXECUTE_SINGLE } from "./types/general";
-import { type Hex, type WalletClient, concat, encodeAbiParameters, encodePacked, keccak256, parseAbiParameters, toFunctionSelector, toHex } from "viem";
-import { mockValidator, smartSessionAddress, simplerSignerAddress, timeFramePolicyAddress } from "./utils/constants";
+import type { EnableSessions, GrantPermissionsRequestParams, PrepareMockEnableDataParams } from "./types/general";
+import { EXECUTE_SINGLE, SmartSessionMode } from "./types/general";
+import { type Hex, type WalletClient, encodeAbiParameters, encodePacked, keccak256, parseAbiParameters, toBytes, toFunctionSelector } from "viem";
+import { mockValidator, smartSessionAddress, timeFramePolicyAddress, multiKeySignerAddress } from "./utils/constants";
 import { ethers } from "ethers";
+import { decodeDIDToPublicKey, encodeSigners, getSignerType } from "./utils/methods";
+import { Signer, SignerType } from "./types/signers";
 
 export const getContext = async (walletClient: WalletClient, {
-  account,
+  smartAccountAddress,
   permissions,
   expiry,
   signer
@@ -16,24 +18,11 @@ export const getContext = async (walletClient: WalletClient, {
   // Shift left by 32 bits to get the uint192 value
   const nonceKey = uint160Address << BigInt(32);
 
-  const signerId = ethers.hexlify(
-    encodePacked(
-      ["bytes32"], 
-      [keccak256
-        (
-          concat(
-            [
-              toHex("Signer Id"), 
-              signer.data.id, 
-              account, 
-              getSignerPolicyByType(signer.type), 
-              toHex(Date.now().toString())
-            ]
-          )
-        )
-      ]
-    )
-  ) as Hex;
+  let signers: Signer[] = [];
+  if(signer.type === "keys") {
+    signers = signer.data.ids.map((id) => ({type: getSignerType(decodeDIDToPublicKey(id).keyType), data: id}));
+  }
+  const signerId = keccak256(encodeAbiParameters(parseAbiParameters("address, bytes"), [multiKeySignerAddress, encodeSigners(signers)])) // do I need to pass signer.data.address here instead ?
 
   const actions = permissions.map(permission => (
     {
@@ -49,8 +38,8 @@ export const getContext = async (walletClient: WalletClient, {
   
   const enableData = await _prepareMockEnableData(
     {
-      signerAddress: signer.data.address, 
-      signerId,
+      smartAccountAddress,
+      signer, 
       walletClient, 
       userOpPolicies: [], // @todo for demo, no userOpPolicies 
       actions, 
@@ -67,15 +56,6 @@ export const getContext = async (walletClient: WalletClient, {
       ]
   );
   return context;
-}
-
-const getSignerPolicyByType = (signerType: string): Hex => {
-  switch(signerType) {
-    case "key":
-      return simplerSignerAddress;
-    default:
-      throw new Error("Invalid signer type");
-  }
 }
 
 export const encodeEnableSessions = (enableData: EnableSessions): string => {
@@ -99,8 +79,8 @@ export const encodeEnableSessions = (enableData: EnableSessions): string => {
 
 export const _prepareMockEnableData = async (
   {
-    signerAddress, 
-    signerId,
+    smartAccountAddress,
+    signer,
     walletClient, 
     userOpPolicies, 
     actions, 
@@ -112,37 +92,52 @@ export const _prepareMockEnableData = async (
     if(walletClient.chain === undefined) {
       throw new Error("Chain is undefined");
     }
-    // Construct enableData
+    let signers: Signer[]  = [];
+    if(signer.type === "keys") {
+      signers = signer.data.ids.map((id) => ({type: getSignerType(decodeDIDToPublicKey(id).keyType), data: id}));
+    }
+    // Construct enableData    
     let enableData: EnableSessions = {
-        isigner: simplerSignerAddress, // Example ISigner address
-        isignerInitData: encodeAbiParameters(parseAbiParameters("address"), [signerAddress]),
+        isigner: multiKeySignerAddress, // Example ISigner address
+        isignerInitData: toBytes(encodeSigners(signers)),
         userOpPolicies,
         erc1271Policies,
         actions,
-        permissionEnableSig: "" 
+        permissionEnableSig: toBytes("") 
     };
 
-    // Compute hash and sign it
-    const hash = getDigest(signerId, enableData, walletClient.chain?.id!);
-    enableData.permissionEnableSig = encodePacked(['address', 'bytes'], [mockValidator, await walletClient.signMessage({account: walletClient.account!, message: hash})]);
+    const abi = [
+      "function getDigest(address isigner, address account, tuple(address isigner, bytes isignerInitData, tuple(address policy, bytes initData)[] userOpPolicies, tuple(address policy, bytes initData)[] erc1271Policies, tuple(bytes32 actionId, tuple(address policy, bytes initData)[] actionPolicies)[] actions, bytes permissionEnableSig) data, uint8 mode) view returns (bytes32)"
+    ];
+    const provider = new ethers.JsonRpcProvider(walletClient.chain.rpcUrls.default.http[0]);
+    const contract = new ethers.Contract(smartSessionAddress, abi, provider);
+  
+    const digest = await contract.getDigest(
+      multiKeySignerAddress,
+      smartAccountAddress,
+      enableData,
+      SmartSessionMode.UNSAFE_ENABLE
+    );
 
+    enableData.permissionEnableSig = toBytes(encodePacked(['address', 'bytes'], [mockValidator, await walletClient.signMessage({account: walletClient.account!, message: digest})]));
     return enableData;
 }
 
-export const getDigest = (signerId: SignerId, data: EnableSessions, chainId: number): string => {
-  return ethers.keccak256(
-    ethers.AbiCoder.defaultAbiCoder().encode(
-      ['bytes32', 'uint256', 'uint256', 'address', 'bytes', 'tuple(address,bytes)[]', 'tuple(address,bytes)[]', 'tuple(bytes32,tuple(address,bytes)[])[]'],
-      [
-        signerId,
-        0n, // @todo need to fetch nonce from smart session instead
-        chainId, 
-        data.isigner,
-        data.isignerInitData,
-        data.userOpPolicies.map(p => [p.policy, p.initData]),
-        data.erc1271Policies.map(p => [p.policy, p.initData]),
-        data.actions.map(a => [a.actionId, a.actionPolicies.map(p => [p.policy, p.initData])])
-      ]
-    )
-  );
-}
+// export const getDigest = (data: EnableSessions, chainId: number): string => {
+//   return ethers.keccak256(
+//     ethers.AbiCoder.defaultAbiCoder().encode(
+//       ['address', 'uint256', 'uint256', 'uint8', 'address', 'bytes', 'tuple(address,bytes)[]', 'tuple(address,bytes)[]', 'tuple(bytes32,tuple(address,bytes)[])[]'],
+//       [
+//         multiKeySignerAddress,
+//         0n, // @todo need to fetch nonce from smart session instead
+//         chainId, 
+//         SmartSessionMode.UNSAFE_ENABLE,
+//         data.isigner,
+//         data.isignerInitData,
+//         data.userOpPolicies.map(p => [p.policy, p.initData]),
+//         data.erc1271Policies.map(p => [p.policy, p.initData]),
+//         data.actions.map(a => [a.actionId, a.actionPolicies.map(p => [p.policy, p.initData])])
+//       ]
+//     )
+//   );
+// }

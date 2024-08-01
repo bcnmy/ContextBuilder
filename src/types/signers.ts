@@ -1,4 +1,7 @@
 // A wallet is the signer for these permissions
+
+import { Address } from "viem";
+
 // `data` is not necessary for this signer type as the wallet is both the signer and grantor of these permissions
 export type WalletSigner = {
     type: "wallet";
@@ -20,6 +23,7 @@ export type MultiKeySigner = {
     type: "keys";
     data: {
         ids: string[];
+        address?: Address;
     };
 };
 
@@ -29,4 +33,14 @@ export type AccountSigner = {
     data: {
         id: `0x${string}`;
     };
+};
+
+export enum SignerType {
+    EOA,
+    PASSKEY
+}
+
+export type Signer = {
+    type: SignerType;
+    data: string;
 };

@@ -1,11 +1,13 @@
 // POLICIES
-export const valueLimitPolicyAddress = "0x09EBE803cda891B4C3c3F92A3875a0d9f16e9329"; // value-limit
-export const timeFramePolicyAddress = "0x4C5908526D60eAE00D96C49b4A20717728423428"; // time-frame
-export const uniActionPolicyAddress = "0xFfdEc7e2B25094B0e2ac6C4AfcFB35483E0FAE2c"; // uni-action
-export const simplerSignerAddress = "0x3bA365eC55098c8A559D651c05751C1d7C765899"; // simpler-signer
+// export const valueLimitPolicyAddress = "0x09EBE803cda891B4C3c3F92A3875a0d9f16e9329"; // value-limit
+export const timeFramePolicyAddress = "0x2A0F4538e1D5341638BBba1578681d4D1622338e"; // time-frame 
+export const uniActionPolicyAddress = "0x960a562fa790973FF6BB3493De4322499711E956"; // uni-action 
+export const multiKeySignerAddress = "0xdB3CCF893b55020153444e163EB0e7fCB4F2f721"; 
+export const simpleSignerAddress = "0xA4eA81B60E6Aea3999E1C4eE335A23463e1c4DFb";
 
-export const smartSessionAddress = "0xa2aA15fc7B92B37635F2B55855Fa17764Ef1bD26";
-export const userOperationBuilderAddress = "0xa47b55881b019a4f83EDa4bf81D39Da13b62f67D";
+export const smartSessionAddress = "0x199F72ce654d3bE1bdfc10BE4Eda7eabbF31909b";
+export const userOperationBuilderAddress = "0xeD14b1D3a5ee527E2d6B63dd0e6681090B770F0F";
 export const mockValidator = "0x9C08e1CE188C29bAaeBc64A08cF2Ec44207749B6";
 export const counterContractAddress = "0x780325C200726176AE17De6a778A582e5adf1F15"; 
 export const digestEncoderAddress = "0x61467D2e2656CacC8eF3C975A865770963B4aBcD"; 
+

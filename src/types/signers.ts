@@ -1,6 +1,6 @@
 // A wallet is the signer for these permissions
 
-import { Address } from "viem";
+import { type Address } from "viem";
 
 // `data` is not necessary for this signer type as the wallet is both the signer and grantor of these permissions
 export type WalletSigner = {

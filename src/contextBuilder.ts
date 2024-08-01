@@ -4,7 +4,7 @@ import { type Hex, type WalletClient, encodeAbiParameters, encodePacked, keccak2
 import { mockValidator, smartSessionAddress, timeFramePolicyAddress, multiKeySignerAddress } from "./utils/constants";
 import { ethers } from "ethers";
 import { decodeDIDToPublicKey, encodeSigners, getSignerType } from "./utils/methods";
-import { Signer, SignerType } from "./types/signers";
+import { type Signer } from "./types/signers";
 
 export const getContext = async (walletClient: WalletClient, {
   smartAccountAddress,

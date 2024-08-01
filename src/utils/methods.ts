@@ -1,6 +1,6 @@
 import bs58 from 'bs58'
-import { encodePacked, Hex } from 'viem'
-import { Signer, SignerType } from '../types/signers'
+import { encodePacked, type Hex } from 'viem'
+import { type Signer, SignerType } from '../types/signers'
 
 export const encodeSecp256k1PublicKeyToDID = (publicKey: string) => {
     // Remove '0x' prefix if present

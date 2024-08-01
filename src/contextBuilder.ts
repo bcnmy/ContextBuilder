@@ -22,7 +22,7 @@ export const getContext = async (walletClient: WalletClient, {
   if(signer.type === "keys") {
     signers = signer.data.ids.map((id) => ({type: getSignerType(decodeDIDToPublicKey(id).keyType), data: id}));
   }
-  const signerId = keccak256(encodeAbiParameters(parseAbiParameters("address, bytes"), [multiKeySignerAddress, encodeSigners(signers)])) // do I need to pass signer.data.address here instead ?
+  const signerId = keccak256(encodeAbiParameters(parseAbiParameters("address, bytes"), [multiKeySignerAddress, encodeSigners(signers)]))
 
   const actions = permissions.map(permission => (
     {

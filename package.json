@@ -1,6 +1,6 @@
 {
   "name": "@biconomy/permission-context-builder",
-  "version": "1.0.5",
+  "version": "1.0.6",
   "main": "index.ts",
   "scripts": {
     "test": "vitest dev -c ./tests/vitest.config.ts",

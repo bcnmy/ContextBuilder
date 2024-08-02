@@ -1,7 +1,6 @@
 import bs58 from 'bs58'
-import { Address, encodeAbiParameters, encodePacked, type Hex } from 'viem'
+import { encodePacked, type Hex } from 'viem'
 import { type Signer, SignerType } from '../types/signers'
-import { PasskeyPublicKey } from '../types/general'
 
 export const encodeSecp256k1PublicKeyToDID = (publicKey: string) => {
     // Remove '0x' prefix if present
@@ -93,19 +92,3 @@ export function bigIntReplacer(_key: string, value: any) {
 
   return value
 }
-
-// export function getEOAAndPasskeySignerInitData(
-//   eoaAddress: Address,
-//   { pubKeyX, pubKeyY }: PasskeyPublicKey
-// ): `0x${string}` {
-//   return encodeAbiParameters(
-//     [{ type: 'uint256' }, WebAuthnValidationDataAbi],
-//     [
-//       BigInt(eoaAddress),
-//       {
-//         pubKeyX,
-//         pubKeyY
-//       }
-//     ]
-//   )
-// }

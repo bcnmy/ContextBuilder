@@ -1,5 +1,5 @@
 import { type Address, type Hex, type WalletClient, concat } from "viem";
-import { Signer, type MultiKeySigner } from "./signers";
+import { type Signer, type MultiKeySigner } from "./signers";
 
 export type RevokePermissionsRequestParams = {
   permissionsContext: "0x{string}";

@@ -1,6 +1,6 @@
 import type { EnableSessions, GrantPermissionsRequestParams, PrepareMockEnableDataParams } from "./types/general";
 import { EXECUTE_SINGLE, SmartSessionMode } from "./types/general";
-import { type Hex, type WalletClient, Address, encodeAbiParameters, encodePacked, keccak256, parseAbiParameters, toBytes, toFunctionSelector } from "viem";
+import { type Hex, type WalletClient, type Address, encodeAbiParameters, encodePacked, keccak256, parseAbiParameters, toBytes, toFunctionSelector } from "viem";
 import { mockValidator, smartSessionAddress, timeFramePolicyAddress, multiKeySignerAddress } from "./utils/constants";
 import { ethers } from "ethers";
 import { decodeDIDToPublicKey, encodeSigners, KEY_TYPES } from "./utils/methods";
@@ -135,7 +135,7 @@ export const getDigest = async (walletClient: WalletClient, smartAccountAddress:
     multiKeySignerAddress,
     smartAccountAddress,
     enableData,
-    SmartSessionMode.UNSAFE_ENABLE
+    mode
   );
 
   return digest;

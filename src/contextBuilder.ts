@@ -75,7 +75,7 @@ export const getContext = async (walletClient: WalletClient, {
 }
 
 export const encodeEnableSessions = (enableData: EnableSessions): string => {
-  return ethers.AbiCoder.defaultAbiCoder().encode(
+  return ethers.utils.defaultAbiCoder.encode(
     [
       'tuple(address isigner, bytes isignerInitData, tuple(address policy, bytes initData)[] userOpPolicies, tuple(address policy, bytes initData)[] erc1271Policies, tuple(bytes32 actionId, tuple(address policy, bytes initData)[] actionPolicies)[] actions, bytes permissionEnableSig)'
     ],
@@ -128,7 +128,7 @@ export const getDigest = async (walletClient: WalletClient, smartAccountAddress:
   const abi = [
     "function getDigest(address isigner, address account, tuple(address isigner, bytes isignerInitData, tuple(address policy, bytes initData)[] userOpPolicies, tuple(address policy, bytes initData)[] erc1271Policies, tuple(bytes32 actionId, tuple(address policy, bytes initData)[] actionPolicies)[] actions, bytes permissionEnableSig) data, uint8 mode) view returns (bytes32)"
   ];
-  const provider = new ethers.JsonRpcProvider(walletClient.chain!.rpcUrls.default.http[0]);
+  const provider = new ethers.providers.JsonRpcProvider(walletClient.chain!.rpcUrls.default.http[0]);
   const contract = new ethers.Contract(smartSessionAddress, abi, provider);
 
   const digest = await contract.getDigest(

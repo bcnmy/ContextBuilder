@@ -26,8 +26,8 @@ export const getContext = async (walletClient: WalletClient, {
     const publicKeys = signer.data.ids.map((id) => decodeDIDToPublicKey(id));
     publicKeys.forEach(key => {
       if (key.keyType === KEY_TYPES.secp256k1) {
-        const eoaPublicKey = publicKeyToAddress(key.key);
-        const signer = {type: SignerType.EOA, data: eoaPublicKey}
+        const eoaAddress = publicKeyToAddress(key.key);
+        const signer = {type: SignerType.EOA, data: eoaAddress}
         signers.push(signer)
       }
       if (key.keyType === KEY_TYPES.secp256r1) {

@@ -1,7 +1,10 @@
 {
   "name": "@biconomy/permission-context-builder",
-  "version": "1.0.6",
-  "main": "index.ts",
+  "main": "./dist/_cjs/index.js",
+  "module": "./dist/_esm/index.js",
+  "types": "./dist/_types/index.d.ts",
+  "typings": "./dist/_types/index.d.ts",
+  "version": "1.0.7",
   "scripts": {
     "test": "vitest dev -c ./tests/vitest.config.ts",
     "build": "bun run clean && bun run build:cjs && bun run build:esm && bun run build:types",
@@ -31,5 +34,9 @@
   "dependencies": {
     "typescript": "^5.5.3",
     "webauthn-p256": "^0.0.8"
-  }
+  },
+  "files": [
+    "dist/*",
+    "README.md"
+  ]
 }

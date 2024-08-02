@@ -43,12 +43,12 @@ export const getContext = async (walletClient: WalletClient, {
   const actions = permissions.map(permission => (
     {
       actionId: keccak256(
-        encodeAbiParameters(
-          parseAbiParameters("address, bytes4"),
-              [permission.data.target, toFunctionSelector(permission.data.functionName)]
+        encodePacked(
+            ["address", "bytes4"],
+            [permission.data.target, toFunctionSelector(permission.data.functionName)]
           )
       ),
-      actionPolicies: [{policy: timeFramePolicyAddress, initData: encodeAbiParameters(parseAbiParameters("uint128, uint128"), [BigInt(expiry), BigInt(0)])}] // hardcoded for demo
+      actionPolicies: [{policy: timeFramePolicyAddress, initData: encodePacked(["uint128", "uint128"], [BigInt(expiry), BigInt(0)])}] // hardcoded for demo
     }
   ))
   

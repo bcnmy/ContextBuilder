@@ -1,5 +1,5 @@
 import { type Address, type Hex, type WalletClient, concat } from "viem";
-import { type MultiKeySigner } from "./signers";
+import { Signer, type MultiKeySigner } from "./signers";
 
 export type RevokePermissionsRequestParams = {
   permissionsContext: "0x{string}";
@@ -117,7 +117,7 @@ export type ActionId = Address;
 
 export type PrepareMockEnableDataParams = {
   smartAccountAddress: Address,
-  signer: MultiKeySigner, 
+  signers: Signer[], 
   walletClient: WalletClient, 
   userOpPolicies: PolicyData[], 
   actions: ActionData[], 
@@ -134,4 +134,9 @@ export type GetContextParams = {
   erc1271Policies: PolicyData[],
   sessionKey: Hex;
   permissionEnableSig?: Hex,
+}
+
+export type PasskeyPublicKey = {
+  pubKeyX: bigint
+  pubKeyY: bigint
 }

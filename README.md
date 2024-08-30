@@ -28,12 +28,12 @@ To generate a permission context for a smart contract interaction:
 ```typescript
 import { getContext } from '@biconomy/permission-context-builder';
 import { createWalletClient, http } from 'viem';
-import { sepolia } from 'viem/chains';
+import { baseSepolia } from 'viem/chains';
 
 const walletClient = createWalletClient({
   account,
   transport: http(),
-  chain: sepolia,
+  chain: baseSepolia,
 });
 
 const context = await getContext(walletClient, {

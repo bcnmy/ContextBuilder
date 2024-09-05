@@ -5,12 +5,12 @@ export const timeFramePolicyAddress = {
 
 export const multiKeySignerAddress = {
     84532: "0x24084171C36Fa6dfdf41D9C89A51F600ed35A731",
-    11155111: "0xdB3CCF893b55020153444e163EB0e7fCB4F2f721"
+    11155111: "0x3cA2D7D588FA66248a49c1C885997e5017aF9Dc7"
 }
 
 export const smartSessionAddress = {
     84532: "0x0ce452fD9d0a20BCC14A2C4830E22bEB7EA4C8ee",
-    11155111: "0x006F777185cf3F0B152E8CEE93587395Aee15129"
+    11155111: "0x39E213e4e1b0256563B7d8029De669ff0eBE1237"
 }
 
 export const userOperationBuilderAddress = {
